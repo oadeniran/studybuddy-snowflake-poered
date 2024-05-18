@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 from streamlit_chat import message
 from langchain_community.vectorstores import FAISS
 from langchain.memory import ConversationBufferMemory
-from langchain.chat_models import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
@@ -41,7 +40,7 @@ temperature = 0.2
 
 base_url = os.getenv("BaseUrl")
 
-@st.cache_resource()
+
 def embed_fn(text, _embed_model):
   return _embed_model.embed_query(text)
 

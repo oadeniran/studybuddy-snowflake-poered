@@ -22,7 +22,6 @@ if 'embed_model' not in st.session_state:
 
 
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OBJECTIVE="Objective"
 TRUE_OR_FALSE="True/False"
 FLASH_CARDS='Flash Cards😍'
@@ -32,7 +31,7 @@ TRUE_OR_FALSE_DEFAULT_VALUE=5
 top_p = 0.9
 temperature = 0.2
 
-@st.cache_resource()
+
 def embed_fn(text, _embed_model):
   return _embed_model.embed_query(text)
 
