@@ -143,7 +143,7 @@ def chatbot():
         chat_container = st.container()
         user_input = st.text_input("Type your question here.", key=st.session_state["input_message_key"])
         if st.button("Send"):
-            passage = find_best_passage(user_input, df, embed_model=st.session_state["embed_model"])
+            passage = find_best_passage(user_input, df, _embed_model=st.session_state["embed_model"])
             prompt = make_prompt(user_input, passage)
             response = ""
             for event in replicate.stream("snowflake/snowflake-arctic-instruct",
