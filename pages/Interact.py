@@ -32,16 +32,17 @@ TRUE_OR_FALSE_DEFAULT_VALUE=5
 top_p = 0.9
 temperature = 0.2
 
+@st.cache_resource
+def embed_fn(text, _embed_model):
+  return _embed_model.embed_query(text)
 
-def embed_fn(text, embed_model):
-  return embed_model.embed_query(text)
-
-def find_best_passage(query, dataframe, embed_model):
+@st.cache_resource
+def find_best_passage(query, dataframe, _embed_model):
   """
   Compute the distances between the query and each document in the dataframe
   using the dot product.
   """
-  query_embedding = embed_model.embed_query(query)
+  query_embedding = _embed_model.embed_query(query)
   dot_products = np.dot(np.stack(dataframe['Embeddings']), query_embedding)
   
   idxs = np.argpartition(dot_products, -4)[-4:]

@@ -41,16 +41,17 @@ temperature = 0.2
 
 base_url = os.getenv("BaseUrl")
 
+@st.cache_resource
+def embed_fn(text, _embed_model):
+  return _embed_model.embed_query(text)
 
-def embed_fn(text, embed_model):
-  return embed_model.embed_query(text)
-
-def find_best_passage(query, dataframe, embed_model):
+@st.cache_resource
+def find_best_passage(query, dataframe, _embed_model):
   """
   Compute the distances between the query and each document in the dataframe
   using the dot product.
   """
-  query_embedding = embed_model.embed_query(query)
+  query_embedding = _embed_model.embed_query(query)
   dot_products = np.dot(np.stack(dataframe['Embeddings']), query_embedding)
   
   idxs = np.argpartition(dot_products, -4)[-4:]
@@ -179,7 +180,7 @@ def chatbot(pdf_name, category_name,df, history_dict):
         user_input = st.text_area("Type your question here.", key=history_dict["input_message_key"])
         if st.button("Send"):
             log_activity('send-message')
-            passage = find_best_passage(user_input, df, embed_model=st.session_state["embed_model"])
+            passage = find_best_passage(user_input, df, _embed_model=st.session_state["embed_model"])
             prompt = make_prompt(user_input, passage)
             response = ""
             for event in replicate.stream("snowflake/snowflake-arctic-instruct",
