@@ -32,11 +32,11 @@ TRUE_OR_FALSE_DEFAULT_VALUE=5
 top_p = 0.9
 temperature = 0.2
 
-@st.cache_resource
+@st.cache_resource()
 def embed_fn(text, _embed_model):
   return _embed_model.embed_query(text)
 
-@st.cache_resource
+@st.cache_resource()
 def find_best_passage(query, dataframe, _embed_model):
   """
   Compute the distances between the query and each document in the dataframe
@@ -48,7 +48,7 @@ def find_best_passage(query, dataframe, _embed_model):
   idxs = np.argpartition(dot_products, -4)[-4:]
   return '\\'.join(txt for txt in dataframe.iloc[idxs]['page_content']) # Return text from index with max value
 
-
+@st.cache_resource()
 def make_prompt(query, relevant_passage):
   escaped = relevant_passage.replace("'", "").replace('"', "").replace("\n", " ")
   prompt = textwrap.dedent("""

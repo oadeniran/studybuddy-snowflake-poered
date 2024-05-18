@@ -41,11 +41,11 @@ temperature = 0.2
 
 base_url = os.getenv("BaseUrl")
 
-@st.cache_resource
+@st.cache_resource()
 def embed_fn(text, _embed_model):
   return _embed_model.embed_query(text)
 
-@st.cache_resource
+@st.cache_resource()
 def find_best_passage(query, dataframe, _embed_model):
   """
   Compute the distances between the query and each document in the dataframe
@@ -58,6 +58,7 @@ def find_best_passage(query, dataframe, _embed_model):
   return '\\'.join(txt for txt in dataframe.iloc[idxs]['page_content']) # Return text from index with max value
 
 
+@st.cache_resource()
 def make_prompt(query, relevant_passage):
   escaped = relevant_passage.replace("'", "").replace('"', "").replace("\n", " ")
   prompt = textwrap.dedent("""
@@ -95,24 +96,6 @@ def log_activity(name):
         headers={'Content-Type': 'application/json'},
         data=payload,
     )
-
-
-def load_cont(container_name):
-    blob_service_client = BlobServiceClient.from_connection_string(blob_conn_str)
-    container_client = blob_service_client.get_container_client(container_name)
-    if not container_client.exists():
-        container_client = container_client.create_container()
-        container_client = blob_service_client.get_container_client(container_name)
-    return container_client
-
-def load_blob(container_client, blob_name):
-    blob_client = container_client.get_blob_client(blob_name)
-    return blob_client
-
-def load_VS_from_azure(container_client, blob_name):
-    bc = load_blob(container_client, blob_name)
-    f = bc.download_blob()
-    return f.read()
 
 
 # Upload Section

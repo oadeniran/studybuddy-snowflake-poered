@@ -126,6 +126,10 @@ def login():
             else:
                 st.error(contents_of_results['message'])
 
+@st.cache_resource(hash_funcs={"MyUnhashableClass": lambda _: None})
+def load_embedding():
+    return HuggingFaceEmbeddings(model_name="snowflake/arctic-embed-l")
+
 
 def main():
     if 'loggedIn' in st.session_state:
@@ -133,8 +137,9 @@ def main():
 
         st.write("You are logged in, proceed to use all our wonderful features")
     else:
+        embedding_model  = load_embedding()
         if 'embed_model' not in st.session_state:
-            st.session_state["embed_model"] = HuggingFaceEmbeddings(model_name="snowflake/arctic-embed-l")
+            st.session_state["embed_model"] = embedding_model
         st.title('Welcome to StudyBuddy😎😎')
 
         # Adding a brief description
