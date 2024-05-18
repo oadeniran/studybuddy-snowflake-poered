@@ -3,3 +3,4 @@ test.py
 app.py
 *.pdf
 __pycache__
+.streamlit/secrets.toml
