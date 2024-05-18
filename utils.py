@@ -153,6 +153,7 @@ def upload(uid, category_name, category_dict):
                 df['Embeddings'] = df.apply(lambda row: embed_fn(row['page_content'], embed_model=st.session_state["embed_model"]), axis=1)
                 st.session_state['dfs']["cat_"+category_name][pdf_name] = df
                 category_dict[pdf_name]["Embeddings"] = {i: v for i, v in enumerate(list(df['Embeddings']))}
+                print(category_dict[pdf_name]["Embeddings"])
                 st.success("PDF processed Successfully!!!")
                 st.info("Please proceed to bot")
                 # Create the dict for uploaded pdf

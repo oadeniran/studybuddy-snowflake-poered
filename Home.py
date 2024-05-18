@@ -100,13 +100,14 @@ def login():
                         st.session_state["history_dict"] = cat_res["history_dict"]
                         st.session_state["activities"], st.session_state['start_time']  = [f"loggedin-{round(time.time(),2)}"], round(time.time(),2)
                         st.session_state["uid+date"] =    st.session_state['loggedIn']["uid"] + '-'+time.strftime('%x')
-                        print("Here", pd.DataFrame(st.session_state["categories_dict"]['cat_Category One']["Student_dropout-final"]["Embeddings"]))
+                        #print("-----",st.session_state["categories_dict"]['cat_Category One']["Student_dropout-final"]["Embeddings"].values())
+                        #print("Here", pd.DataFrame({"Embeddings" : st.session_state["categories_dict"]['cat_Category One']["Student_dropout-final"]["Embeddings"].values()}))
                         for category in st.session_state["categories_dict"].keys():
                             st.session_state["dfs"][category] = {book: pd.concat([
                                 pd.DataFrame(st.session_state["categories_dict"][category][book]["pages"]),
-                                pd.DataFrame(st.session_state["categories_dict"][category][book]["Embeddings"], columns = ["Rows", "Embeddings"])
-                                ], axis = 1)[["page_content", "Embeddings"]] for book in st.session_state["categories_dict"][category].keys()}
-
+                                pd.DataFrame({"Embeddings" : st.session_state["categories_dict"][category][book]["Embeddings"].values()})
+                                ], axis = 1)[['page_content', 'Embeddings']]for book in st.session_state["categories_dict"][category].keys()}
+                        #print("Here2", pd.DataFrame(st.session_state["dfs"]['cat_Category One']["Student_dropout-final"]))
                         st.switch_page("pages/My-Categories.py")
                     else:
                         st.session_state["history_dict"] = {}
