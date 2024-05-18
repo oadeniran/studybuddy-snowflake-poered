@@ -206,31 +206,39 @@ def parse_questions(input_text):
     questions = []
 
     for block in question_blocks:
-        #print("BLOCK is", block )
+        #print("BLOCK is", block.replace("*", ""))
         if block.strip() and "CHOICE_A" in block:
+            try:
+                block = block.replace("*", "")
+                question_num = int(re.search(r'\d+', block).group())
+
             
-            question_num = int(re.search(r'\d+', block).group())
+                pattern = r"\d:\s*(.*?)(?:\nCHOICE_|Answer:)"
+                # Match the pattern in the text
+                match = re.search(pattern, block, re.DOTALL)
+                if match:
+                    question_text = match.group(1).replace("*", "").replace("\n", "")
 
-          
-            question_text = re.search(r'(?<=:\s).*?(?=\n)', block).group()
+            
+                choices = re.findall(r'(CHOICE_[A-E]):\s(.*?)\n', block)
+                options = {choice[0][-1]: choice[1] for choice in choices}
 
-         
-            choices = re.findall(r'(CHOICE_[A-E]):\s(.*?)\n', block)
-            options = {choice[0][-1]: choice[1] for choice in choices}
+            
+                answer = re.search(r'Answer:\s([A-E])', block).group(1)
 
-         
-            answer = re.search(r'Answer:\s([A-E])', block).group(1)
+            
+                question_obj = {
+                    "question_num": question_num,
+                    "question": question_text,
+                    "options": options,
+                    "answer": answer
+                }
 
-        
-            question_obj = {
-                "question_num": question_num,
-                "question": question_text,
-                "options": options,
-                "answer": answer
-            }
+            
+                questions.append(question_obj)
 
-          
-            questions.append(question_obj)
+            except Exception as e:
+                print(e)
 
     return questions
 
@@ -282,7 +290,7 @@ def generate_quizz(doc,type,num):
             Answer: B
 
             These questions should be detailed and solely based on the information provided in the document.
-            The questions should also follow format given in example with no extra asterisks in the questions or answers
+            The questions should also follow format given in example with no extra asterisks in the questions or answers and all questions MUST contain an ANSWER
             Example of bad format which must not be included in questions:
                 **QUESTION 2:**
 
@@ -410,14 +418,14 @@ def generate_quizz(doc,type,num):
                                 }):
         questions += str(event)
 
-    print("questions===", questions)
+    #print("questions===", questions)
     if type == FLASH_CARDS:
         cleaned_questions = parse_flash_cards(questions)
     elif type == FILL_IN_GAP:
         cleaned_questions = parse_german(questions)
     else:
         cleaned_questions = parse_questions(questions)
-    print(cleaned_questions)
+    #print(cleaned_questions)
     return cleaned_questions
     
 def parse_flash_cards(questions):
