@@ -170,35 +170,39 @@ def parse_questions(input_text):
     questions = []
 
     for block in question_blocks:
-        print("BLOCK is", block.replace("*", ""))
+        #print("BLOCK is", block.replace("*", ""))
         if block.strip() and "CHOICE_A" in block:
-            block = block.replace("*", "")
-            question_num = int(re.search(r'\d+', block).group())
+            try:
+                block = block.replace("*", "")
+                question_num = int(re.search(r'\d+', block).group())
 
-          
-            pattern = r"\d:\s*(.*?)(?:\nCHOICE_|Answer:)"
-            # Match the pattern in the text
-            match = re.search(pattern, block, re.DOTALL)
-            if match:
-                question_text = match.group(1).replace("*", "").replace("\n", "")
+            
+                pattern = r"\d:\s*(.*?)(?:\nCHOICE_|Answer:)"
+                # Match the pattern in the text
+                match = re.search(pattern, block, re.DOTALL)
+                if match:
+                    question_text = match.group(1).replace("*", "").replace("\n", "")
 
-         
-            choices = re.findall(r'(CHOICE_[A-E]):\s(.*?)\n', block)
-            options = {choice[0][-1]: choice[1] for choice in choices}
+            
+                choices = re.findall(r'(CHOICE_[A-E]):\s(.*?)\n', block)
+                options = {choice[0][-1]: choice[1] for choice in choices}
 
-         
-            answer = re.search(r'Answer:\s([A-E])', block).group(1)
+            
+                answer = re.search(r'Answer:\s([A-E])', block).group(1)
 
-        
-            question_obj = {
-                "question_num": question_num,
-                "question": question_text,
-                "options": options,
-                "answer": answer
-            }
+            
+                question_obj = {
+                    "question_num": question_num,
+                    "question": question_text,
+                    "options": options,
+                    "answer": answer
+                }
 
-          
-            questions.append(question_obj)
+            
+                questions.append(question_obj)
+
+            except Exception as e:
+                print(e)
 
     return questions
 
@@ -209,19 +213,21 @@ def parse_german(input_text):
     questions = []
 
     for block in question_blocks[1:]:
-        print("BLOCK is", block.replace("*", ""))
-
-        pattern = r'[0-9]'
-        temp = ''.join([p for p in block if p not in ["*", "\n", ":"]]).split("Answer")
-        print(temp)
-        question_number, question , answer = re.match(pattern,temp[0].strip()).group(),re.sub(pattern, '', temp[0].strip()), temp[1].strip()
-        print(question_number, question , answer)
-        question_obj = {
-            "question_num": question_number,
-            "question": question,
-            "answer": answer.split(",")
-        }
-        questions.append(question_obj)
+        #print("BLOCK is", block.replace("*", ""))
+        try:
+            pattern = r'[0-9]'
+            temp = ''.join([p for p in block if p not in ["*", "\n", ":"]]).split("Answer")
+            print(temp)
+            question_number, question , answer = re.match(pattern,temp[0].strip()).group(),re.sub(pattern, '', temp[0].strip()), temp[1].strip()
+            print(question_number, question[:question.index("(")] , answer)
+            question_obj = {
+                "question_num": question_number,
+                "question": question[:question.index("(")],
+                "answer": answer.split(",")
+            }
+            questions.append(question_obj)
+        except Exception as e:
+            print(e)
 
     return questions
 
@@ -368,7 +374,6 @@ def generate_quizz(doc,type,num):
             {doc}
             <End Document>"""
 
-    #llm = LLMChain(llm = ChatGoogleGenerativeAI(model="gemini-pro", convert_system_message_to_human=True), prompt=prompt)
     
     questions = ""
     for event in replicate.stream("snowflake/snowflake-arctic-instruct",
@@ -398,11 +403,14 @@ def parse_flash_cards(questions):
     
     # Iterate over the parts and extract the question and answer
     for part in parts:
-        # Use regex to extract the question number, question, and answer
-        pattern = r'[0-9]'
-        temp = ''.join([p for p in part if p not in ["*", "\n", ":"]]).split("Answer")
-        question , answer = re.sub(pattern, '', temp[0].strip()), temp[1].strip()
-        qa_pairs.append({'question': question, 'answer': answer})
+        try:
+            # Use regex to extract the question number, question, and answer
+            pattern = r'[0-9]'
+            temp = ''.join([p for p in part if p not in ["*", "\n", ":"]]).split("Answer")
+            question , answer = re.sub(pattern, '', temp[0].strip()), temp[1].strip()
+            qa_pairs.append({'question': question, 'answer': answer})
+        except Exception as e:
+            print(e)
     
     return qa_pairs
 
@@ -465,7 +473,7 @@ def quizz_generation():
         st.error("A PDF File has to be uploaded to generate quizz")
         return
     st.header("🌟 Welcome to StuddyBuddy! Ready to Test Your Knowledge and Practice What You've Learnt? 🚀")
-    
+    st.info("Prompts for question generation are still being finetuned, therefore some questions might be subpar")
     pages = st.session_state['pages']
     # print("PAEGS is ",pages)
     page_ranges_2_index= generate_page_ranges(len(pages))
@@ -500,7 +508,7 @@ def quizz_generation():
         if selection == FLASH_CARDS:
              st.info("Generating flash cards..... Please wait")
         else:
-            st.info("Generating Quizz Questions")
+            st.info("Generating Quizz Questions. Please wait till success message befor proceeding")
         st.session_state['questions'] = generate_questions(selection,pages_to_query,user_input)
         print(st.session_state['questions'])
         st.session_state['selection'] = selection

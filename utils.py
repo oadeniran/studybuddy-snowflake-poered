@@ -115,7 +115,7 @@ def upload(uid, category_name, category_dict):
         if 'dfs' not in st.session_state:
             st.session_state['dfs'] = {}
         if "cat_"+category_name not in  st.session_state['dfs']:
-            st.session_state['dfs'][category_name] = {}
+            st.session_state['dfs']["cat_"+category_name] = {}
 
         category_dict[pdf_name]["pages"]= [d.dict() for d in loader.load_and_split()]
         documents = loader.load()
@@ -232,19 +232,21 @@ def parse_german(input_text):
     questions = []
 
     for block in question_blocks[1:]:
-        print("BLOCK is", block.replace("*", ""))
-
-        pattern = r'[0-9]'
-        temp = ''.join([p for p in block if p not in ["*", "\n", ":"]]).split("Answer")
-        print(temp)
-        question_number, question , answer = re.match(pattern,temp[0].strip()).group(),re.sub(pattern, '', temp[0].strip()), temp[1].strip()
-        print(question_number, question , answer)
-        question_obj = {
-            "question_num": question_number,
-            "question": question,
-            "answer": answer.split(",")
-        }
-        questions.append(question_obj)
+        #print("BLOCK is", block.replace("*", ""))
+        try:
+            pattern = r'[0-9]'
+            temp = ''.join([p for p in block if p not in ["*", "\n", ":"]]).split("Answer")
+            print(temp)
+            question_number, question , answer = re.match(pattern,temp[0].strip()).group(),re.sub(pattern, '', temp[0].strip()), temp[1].strip()
+            print(question_number, question[:question.index("(")] , answer)
+            question_obj = {
+                "question_num": question_number,
+                "question": question[:question.index("(")],
+                "answer": answer.split(",")
+            }
+            questions.append(question_obj)
+        except Exception as e:
+            print(e)
 
     return questions
 
@@ -414,20 +416,24 @@ def generate_quizz(doc,type,num):
 def parse_flash_cards(questions):
     # Split the text by "QUESTION"
     parts = questions.split('QUESTION')[1:]  # ignore the first split as it will be an empty string before the first "QUESTION"
+    #print(parts)
     
     # Initialize an empty list to hold the question-answer pairs
     qa_pairs = []
     
     # Iterate over the parts and extract the question and answer
     for part in parts:
-        # Use regex to extract the question number, question, and answer
-        match = re.search(r'\d+: (.*?)\nAnswer: (.*?)$', part, re.DOTALL)
-        if match:
-            question = match.group(1).strip()
-            answer = match.group(2).strip()
+        try:
+            # Use regex to extract the question number, question, and answer
+            pattern = r'[0-9]'
+            temp = ''.join([p for p in part if p not in ["*", "\n", ":"]]).split("Answer")
+            question , answer = re.sub(pattern, '', temp[0].strip()), temp[1].strip()
             qa_pairs.append({'question': question, 'answer': answer})
+        except Exception as e:
+            print(e)
     
-    return qa_pairs    
+    return qa_pairs
+  
 def generate_questions(quiz_type:str,pages,no_of_questions):
     questions = []
     for page in pages:
@@ -484,6 +490,7 @@ def get_selected_page_ranges(page_ranges):
     
 def quizz_generation(pdf_name, category_dict):
     st.header(f"🌟 Welcome to StuddyBuddy! Ready to Test Your Knowledge and Practice What You've Learnt on {pdf_name}? 🚀")
+    st.info("Prompts for question generation are still being finetuned, therefore some questions might be subpar")
     
     pages = [Document(page_content = t["page_content"]) for t in category_dict[pdf_name]["pages"]]
     
@@ -493,7 +500,7 @@ def quizz_generation(pdf_name, category_dict):
     page_ranges = list(page_ranges_2_index.keys())
     selected_page_ranges = get_selected_page_ranges(page_ranges)
     st.write('Selected Page Range:', ', '.join(selected_page_ranges) if selected_page_ranges else 'None')
-    selection = st.radio("What Format do you want?", [OBJECTIVE, TRUE_OR_FALSE, FLASH_CARDS],horizontal=True)
+    selection = st.radio("What Format do you want?", [OBJECTIVE, TRUE_OR_FALSE, FLASH_CARDS,FILL_IN_GAP],horizontal=True)
     user_input = None
     if selection == OBJECTIVE:
         user_input = st.number_input('How many Questions Do you want Generated per Page', min_value=2, value=OBJECTIVE_DEFAULT_VALUE, step=1, format='%d')
@@ -520,7 +527,7 @@ def quizz_generation(pdf_name, category_dict):
         if selection == FLASH_CARDS:
              st.info("Generating flash cards..... Please wait")
         else:
-            st.info("Generating Quizz Questions")
+            st.info("Generating Quizz Questions....Please wait till success message befor proceeding")
         st.session_state['questions'] = generate_questions(selection,pages_to_query,user_input)
         st.session_state['selection'] = selection
         log_activity('quiz-generation-succeeded')
@@ -560,9 +567,6 @@ def display_on_streamlit():
     if 'questions' not in st.session_state:
         st.error("Generate Quizz please")
         return
-    
-    st.warning("For this demo, leaving this page means you have to generate the quizzes again")
-    log_activity('start-quiz-viewing')
     data = st.session_state['questions']
     type = st.session_state['selection']
     if type == FLASH_CARDS:
@@ -636,7 +640,56 @@ def display_on_streamlit():
                 '<div><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Barlow+Condensed&family=Cabin&display=swap" rel="stylesheet"></div>',
                 unsafe_allow_html=True,
             )
+    
+    elif type == FILL_IN_GAP:
+        state = get_state()
+        if not state['submitted']:
+            form_placeholder = st.empty()
+            with form_placeholder.form(key='quiz_form'):
+                st.write("Separate multiple answers with a comma. Please ensure your answers are exacly the same as the one in the pdf")
+                user_answers = {}
+                for idx, question in enumerate(data, start=1):
+                    st.write(f"Question {idx}: {question['question']}")
+                    #corr_ans = question['answer']
+                    user_answers[idx] = st.text_input("Wirte your answer here separated by a comma", key=idx)
+                
+                submit_button = st.form_submit_button(label='Submit Answers')
+                
+            if submit_button:
+                state['submitted'] = True
+                state['user_answers'] = user_answers
+                # Calculate score
+                score = 0
+                for i, dets in enumerate(data, start = 1):
+                    if len(dets['answer']) != len(user_answers[i].split(",")):
+                        continue
+                    else:
+                        for ac, sel in zip(dets['answer'], user_answers[i].split(",")):
+                            if sel.strip().lower() == ac.strip().lower():
+                                score += 1
+                    
+                state['score'] = score
+                form_placeholder.empty() # Clear the form
+                
+        if state['submitted']:
+            for idx, question in enumerate(data, start=1):
+                user_answer = state['user_answers'][idx].split(",")
+                correct_answer = question['answer']
+                
+                feedback = f"Correct answer is {correct_answer}"
+                st.write(f"Question {idx}: {question['question']}")
+                st.write(f"Your answer: {user_answer} - {feedback}")
+                st.write("\n")
+                st.write("\n")
 
+            # Display score
+            st.write(f"Your Score: {state['score']}/{len(data)}")
+
+            if st.button('Try Again'):
+                state['submitted']
+                st.experimental_rerun()
+                
+        
 
 
     else:
@@ -681,7 +734,6 @@ def display_on_streamlit():
 
             # Display score
             st.write(f"Your Score: {state['score']}/{len(data)}")
-            log_activity('Finished-quiz')
 
             if st.button('Try Again'):
                 state['submitted']
